@@ -1,0 +1,50 @@
+name: Django CI with Docker
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Check out the repository
+    - name: Check out repository
+      uses: actions/checkout@v4
+    
+    # 2. Set up Docker
+    - name: Set up Docker
+      run: |
+        docker --version
+        docker-compose --version
+    
+    # 3. Build and start the services
+    - name: Build and Start Services
+      run: |
+        docker-compose up --build -d  # Inicia los servicios en segundo plano
+    
+    # 4. Run tests inside the Docker container
+    - name: Run Tests
+      run: |
+        docker exec django-app sh -c "coverage run manage.py test"  # Ejecuta los tests
+        docker exec django-app sh -c "coverage report"  # Genera reporte en terminal
+    
+    # 5. Generate HTML coverage report
+    - name: Generate HTML Coverage Report
+      run: |
+        docker exec django-app sh -c "coverage html"
+    
+    # 6. Upload coverage report
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: ./htmlcov/  # Cambiar si necesitas usar una ruta dentro del contenedor
+    
+    # 7. Stop and clean up Docker containers
+    - name: Stop and Clean Docker Containers
+      run: |
+        docker-compose down
